@@ -45,6 +45,29 @@ class ExperimentApp:
                 print("Warning: Invalid JSON format. Loading defaults.")
         return {}
 
+    def get_results_dir(self) -> str:
+        results_dir = os.path.join(os.getcwd(), "results")
+        os.makedirs(results_dir, exist_ok=True)
+        return results_dir
+
+    def get_default_results_path(self, alg_name: str) -> str:
+        timestamp = datetime.now().strftime("%Y%m%d_%S-%M-%H")
+        filename = f"CMAP_{alg_name}_{timestamp}.json"
+        return os.path.join(self.get_results_dir(), filename)
+
+    def build_results_payload(self, alg_name: str) -> dict:
+        return {
+            "algorithm": alg_name,
+            "saved_at": datetime.now().isoformat(timespec="seconds"),
+            "overall_means": self.latest_overall,
+            "step_averages": json.loads(self.latest_summary.to_json(orient="records")),
+            "raw_iterations": json.loads(self.latest_df.to_json(orient="records"))
+        }
+
+    def save_results(self, filepath: str, alg_name: str):
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(self.build_results_payload(alg_name), f, indent=4)
+
     def get_available_algorithms(self) -> dict:
         alg_classes = {}
         for name, obj in inspect.getmembers(alg_module, inspect.isclass):
@@ -95,7 +118,7 @@ class ExperimentApp:
         
         # Tuple format: (Label, Key, Default Start, Default End)
         param_keys = [
-            ("st (Statements ≤ 100)", "st", "20", "100"),
+            ("st (Statements <= 100)", "st", "20", "100"),
             ("k (Clusters)", "k", "3", "12"),
             ("mean_cii (within-cluster)", "mean_cii", "1.0", "0.6"),
             ("std_cii (within-cluster)", "std_cii", "0.0", "0.25"),
@@ -188,7 +211,7 @@ class ExperimentApp:
         scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        columns = ("step", "st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e", "accuracy", "jaccard_macro", "jaccard_micro")
+        columns = ("step", "st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e", "accuracy", "jaccard_eqcluster", "jaccard_eqst")
         
         self.tree = ttk.Treeview(tree_container, columns=columns, show="headings", height=6, yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.tree.yview)
@@ -197,7 +220,7 @@ class ExperimentApp:
             "step": ("Step", 50), "st": ("st", 50), "k": ("k", 50), 
             "mean_cii": ("m_cii", 70), "std_cii": ("s_cii", 70), 
             "mean_cij": ("m_cij", 70), "std_cij": ("s_cij", 70), "std_e": ("std_e", 70),
-            "accuracy": ("Accuracy", 80), "jaccard_macro": ("Jacc.(Macro)", 100), "jaccard_micro": ("Jacc.(Micro)", 100)
+            "accuracy": ("Accuracy", 80), "jaccard_eqcluster": ("Jaccard_eqcluster", 130), "jaccard_eqst": ("Jaccard_eqst", 110)
         }
         
         for col, (head, width) in col_settings.items():
@@ -245,14 +268,14 @@ class ExperimentApp:
                     f"{row['std_cij']:.2f}",
                     f"{row['std_e']:.2f}",
                     f"{row['accuracy']:.3f}",
-                    f"{row['jaccard_macro']:.3f}",
-                    f"{row['jaccard_micro']:.3f}"
+                    f"{row['jaccard_eqcluster']:.3f}",
+                    f"{row['jaccard_eqst']:.3f}"
                 ))
 
             summary_text = (
                 f"Overall Mean Accuracy: {overall['overall_accuracy']:.3f}   |   "
-                f"Overall Mean Jaccard (Macro): {overall['overall_jaccard_macro']:.3f}   |   "
-                f"Overall Mean Jaccard (Micro): {overall['overall_jaccard_micro']:.3f}"
+                f"Overall Mean Jaccard_eqcluster: {overall['overall_jaccard_eqcluster']:.3f}   |   "
+                f"Overall Mean Jaccard_eqst: {overall['overall_jaccard_eqst']:.3f}"
             )
             self.metrics_lbl.config(text=summary_text, fg="#0f172a", font=("Segoe UI", 11, "bold"))
 
@@ -260,6 +283,8 @@ class ExperimentApp:
             self.latest_df = df
             self.latest_summary = summary
             self.latest_overall = overall
+            self.latest_export_path = self.get_default_results_path(selected_alg_name)
+            self.save_results(self.latest_export_path, selected_alg_name)
             self.export_btn.config(state=tk.NORMAL)
 
         except Exception as e:
@@ -269,14 +294,13 @@ class ExperimentApp:
         if not hasattr(self, 'latest_df') or self.latest_df is None:
             return
         
-        # Format the default filename: CMAP-<Algorithm>-<YYYYMMDD>
         alg_name = self.alg_combo.get()
-        date_str = datetime.now().strftime("%Y%m%d")
-        default_filename = f"CMAP-{alg_name}-{date_str}.json"
+        default_path = self.get_default_results_path(alg_name)
             
         filepath = filedialog.asksaveasfilename(
             defaultextension=".json",
-            initialfile=default_filename,
+            initialdir=self.get_results_dir(),
+            initialfile=os.path.basename(default_path),
             filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")],
             title="Export Benchmark Results"
         )
@@ -285,16 +309,7 @@ class ExperimentApp:
             return
             
         try:
-            export_data = {
-                "algorithm": alg_name,
-                "overall_means": self.latest_overall,
-                "step_averages": json.loads(self.latest_summary.to_json(orient="records")),
-                "raw_iterations": json.loads(self.latest_df.to_json(orient="records"))
-            }
-            
-            with open(filepath, 'w') as f:
-                json.dump(export_data, f, indent=4)
-                
+            self.save_results(filepath, alg_name)
             messagebox.showinfo("Success", f"Data exported successfully to:\n{filepath}")
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to export data: {str(e)}")
@@ -459,7 +474,7 @@ class MathModeApp:
         mds = MDS(
             n_components=2, 
             metric_mds=False, 
-            dissimilarity='precomputed', 
+            metric='precomputed', 
             random_state=42,
             init='random'
         )

@@ -51,18 +51,11 @@ class TrochimMethodAlgorithm(BaseCMAlgorithm):
         D = max_sim - S
         np.fill_diagonal(D, 0)
         
-        # 2. Non-metric MDS (Using updated 'metric' parameter to avoid scikit-learn deprecation warnings)
-        mds = MDS(
-            n_components=2, 
-            metric=False,              # Replaces metric_mds=False
-            dissimilarity='precomputed',# Legacy fallback compatibility if needed, but scikit-learn uses 'metric'
-            random_state=42,
-            init='random'
-        )
-        # Clean scikit-learn call using 'metric' keyword
+        # 2. Non-metric MDS
         mds = MDS(
             n_components=2,
-            metric='precomputed',     # 'precomputed' tells MDS the input is already a distance matrix
+            metric_mds=False,
+            metric='precomputed',
             n_init=4,
             random_state=42,
             init='random'

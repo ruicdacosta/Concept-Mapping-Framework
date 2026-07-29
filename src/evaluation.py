@@ -36,8 +36,8 @@ class Evaluator:
         
         return {
             "accuracy": accuracy_score(y_true, y_pred),
-            "jaccard_macro": jaccard_score(y_true, y_pred, average="macro", zero_division=0),
-            "jaccard_micro": jaccard_score(y_true, y_pred, average="micro", zero_division=0)
+            "jaccard_eqcluster": jaccard_score(y_true, y_pred, average="macro", zero_division=0),
+            "jaccard_eqst": jaccard_score(y_true, y_pred, average="micro", zero_division=0)
         }
 
 class ResultAggregator:
@@ -50,7 +50,7 @@ class ResultAggregator:
         """
         # Updated to include ALL 7 parameters in the grouping
         group_cols = ["step", "st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e"]
-        summary = df.groupby(group_cols)[["accuracy", "jaccard_macro", "jaccard_micro"]].mean().reset_index()
+        summary = df.groupby(group_cols)[["accuracy", "jaccard_eqcluster", "jaccard_eqst"]].mean().reset_index()
         return summary
 
     @staticmethod
@@ -60,6 +60,6 @@ class ResultAggregator:
         """
         return {
             "overall_accuracy": df["accuracy"].mean(),
-            "overall_jaccard_macro": df["jaccard_macro"].mean(),
-            "overall_jaccard_micro": df["jaccard_micro"].mean()
+            "overall_jaccard_eqcluster": df["jaccard_eqcluster"].mean(),
+            "overall_jaccard_eqst": df["jaccard_eqst"].mean()
         }

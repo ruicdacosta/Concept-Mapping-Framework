@@ -1,13 +1,13 @@
 {
     "default_algorithm": "PeladeauMethodAlgorithm",
     "parameters": {
-        "#Statements (≤ 100)": {"start": 20, "end": 100},
-        "#Clusters": {"start": 3, "end": 12},
-        "mean_cii (within clusters)": {"start": 1.0, "end": 0.6},
-        "std_cii (within clusters)": {"start": 0.0, "end": 0.25},
-        "mean_cij (between clusters)": {"start": 0.0, "end": 0.3},
-        "std_cij (between clusters)": {"start": 0.0, "end": 0.2},
-        "std_e (Error)": {"start": 0.05, "end": 0.8}
+        "st (Statements <= 100)": {"start": 20, "end": 100},
+        "k (Clusters)": {"start": 3, "end": 12},
+        "mean_cii (within-cluster)": {"start": 1.0, "end": 0.6},
+        "std_cii (within-cluster)": {"start": 0.0, "end": 0.25},
+        "mean_cij (between-clusters)": {"start": 0.0, "end": 0.3},
+        "std_cij (between-clusters)": {"start": 0.0, "end": 0.2},
+        "std_e (error)": {"start": 0.05, "end": 0.8}
     },
     "run_settings": {
         "steps": 5,

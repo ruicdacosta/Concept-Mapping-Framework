@@ -1,50 +1,68 @@
-# Concept Mapping Algorithm Benchmarking Framework
+# Concept Mapping Benchmark Framework
 
-## Overview and Context
+This repository implements a synthetic benchmark for concept mapping clustering algorithms. The framework creates a known reference model, generates noisy similarity matrices from it, runs candidate algorithms, and evaluates how well each algorithm reconstructs the original statement-to-cluster structure.
 
-Concept mapping combines qualitative and quantitative statistical analysis to help identify, prioritize, and relate the components of a given reality. This framework provides an objective, mathematical environment to test and benchmark clustering algorithms against a known ground truth using synthetic data.
+## Repository Structure
 
----
+- `main.py`: command-line entry point for the GUI modes.
+- `gui/app.py`: Tkinter interfaces for benchmark execution and mathematical inspection.
+- `src/generator.py`: synthetic generation of `Z`, `C`, `S0`, `E`, and `S`.
+- `src/generation_benchmark.py`: interpolation of easy-to-hard benchmark parameter steps.
+- `src/algorithms.py`: base class and implemented algorithms.
+- `src/evaluation.py`: label alignment, accuracy, and Jaccard metrics.
+- `experiment_settings.json`: default GUI parameters.
+- `results/`: JSON benchmark outputs.
+- `doc/doc.tex`: compact technical report.
 
-## The Mathematical Generation Pipeline
- 
-To evaluate clustering performance, the framework generates synthetic, parameterized concept mapping data. The generation process relies on configurable input parameters and produces a final noisy similarity matrix, S, which mimics human sorting behavior.
+## Mathematical Model
 
-### 1. The Ground Truth Matrix (Z)
-The framework generates a binary statement-to-cluster assignment matrix Z of shape (st x k), where st is the number of statements and k is the number of clusters. A value of 1 indicates a statement belongs to a cluster.
+The generator builds a synthetic concept mapping problem from a known ground-truth assignment matrix.
 
-### 2. The Cluster Covariance Matrix (C)
-A covariance matrix C of shape (k x k) is generated to define the relationships between clusters. The diagonal values (within-cluster similarities) are drawn from a normal distribution defined by mean_cii and std_cii. The off-diagonal values (between-cluster similarities) are defined by mean_cij and std_cij.
+1. `Z` is a binary statement-to-cluster matrix of shape `(st x k)`, where `st` is the number of statements and `k` is the number of clusters.
+2. `C` is a symmetric cluster-level similarity matrix of shape `(k x k)`. Diagonal entries are sampled from `N(mean_cii, std_cii)` and off-diagonal entries from `N(mean_cij, std_cij)`.
+3. `S0 = Z C Z^T` is the noise-free statement similarity matrix.
+4. `E` is a symmetric noise matrix sampled from `N(0, std_e)`.
+5. `S = S0 + E` is the noisy similarity matrix given to the algorithms. The diagonal of `S` is forced to `1.0`.
 
-### 3. The Base Similarity Matrix (S0)
-The true, noise-free relationship between all statements is computed using matrix multiplication:
+## Running
 
-S0 = Z * C * Z^T
+Use one of the two supported modes:
 
-### 4. The Error Matrix (E)
-To simulate human disagreement and sorting noise, an error matrix E of shape (st x st) is generated. Values are drawn from a normal distribution with a mean of 0 and a standard deviation of std_e.
+```bash
+python main.py
+python main.py --mode math
+```
 
-### 5. The Final Similarity Matrix (S)
-The algorithm receives the final noisy similarity matrix S:
+`python main.py` opens the benchmark interface. Select an algorithm, set parameter bounds, choose the number of steps and runs per step, and run the experiment.
 
-S = S0 + E
+`python main.py --mode math` opens the mathematical inspection tool. It lets the user define or generate `Z`, generate `C`, `S0`, `E`, and `S`, inspect the matrices, and visualize `S0` or `S` using non-metric MDS.
 
-*(Note: The diagonal of S is forced to 1.0 to reflect perfect self-similarity.)*
+## Results
 
----
+After a benchmark run, results are automatically saved as JSON under `results/` using:
 
-## Implementing Custom Algorithms
+```text
+CMAP_[Algorithm]_[YYYYMMDD_ss-mm-hh].json
+```
 
-The framework relies on Object-Oriented Programming to provide a plug-and-play environment for researchers. You do not need to alter the data generation, the GUI, or the evaluation logic to add a new method.
+The time separator is `-` instead of `:` because Windows filenames cannot contain colons. The JSON contains the selected algorithm, save time, overall mean metrics, step averages, and raw iteration logs. The GUI export button can also save an additional JSON copy.
 
-### Steps for Integration
-1. Open `src/algorithms.py`.
-2. Create a new class that inherits from the `BaseCMAlgorithm` abstract base class.
-3. Implement the `fit(self, S, k)` method.
-    * **Inputs:** The method will receive the (st x st) noisy similarity matrix S and the expected number of clusters k.
-    * **Outputs:** The method must return a binary prediction matrix Z_alg of shape (st x k).
+## Evaluation Metrics
 
-**Example Template:**
+Predicted cluster labels are first aligned with the ground truth by solving the label permutation problem with the Hungarian algorithm.
+
+The current metrics are:
+
+- `accuracy`: fraction of statements assigned to the correct aligned cluster.
+- `jaccard_eqcluster`: macro Jaccard coefficient, computed as the mean Jaccard index over clusters, giving each cluster equal weight.
+- `jaccard_eqst`: micro Jaccard coefficient, computed globally over pooled statement decisions, giving statements equal contribution.
+
+For each benchmark step, the framework averages metrics over repeated runs. Overall means are then computed across all raw runs.
+
+## Implementing New Algorithms
+
+Add new algorithms in `src/algorithms.py` by creating a class that inherits from `BaseCMAlgorithm` and implements `fit(self, S, k)`.
+
 ```python
 from src.algorithms import BaseCMAlgorithm
 import numpy as np
@@ -52,45 +70,27 @@ import numpy as np
 class MyNovelAlgorithm(BaseCMAlgorithm):
     def fit(self, S: np.ndarray, k: int) -> np.ndarray:
         st = S.shape[0]
-        
-        # ... Insert custom clustering logic here ...
-        
+
+        # Insert custom clustering logic here.
+
         Z_alg = np.zeros((st, k), dtype=int)
-        # Populate Z_alg with 1s based on your clustering results
+        # Populate Z_alg with 1s based on your clustering results.
         return Z_alg
 ```
 
-Once your class is added to `src/algorithms.py`, the GUI uses the Python `inspect` module to automatically discover it. It will immediately appear in the UI dropdown menu without requiring any changes to the core application files.
+Inputs:
 
+- `S`: the `(st x st)` noisy similarity matrix.
+- `k`: the expected number of clusters.
 
-## Configuration and the experiment_settings.json
+Output:
 
-Default parameters for the batch experiments are decoupled from the code and stored in `experiment_settings.json`. 
+- `Z_alg`: a binary prediction matrix of shape `(st x k)`.
 
-* **What to change:** You can modify the `default_algorithm` string to automatically load your new algorithm upon startup. You can also alter the start and end bounds for the 7 evolution parameters (e.g., st, k, std_e).
+The GUI discovers valid subclasses automatically, so new algorithms appear in the dropdown without modifying the GUI.
 
----
+## Current Algorithms
 
-## Running the Framework
-
-Launch the framework via command line:
-* **Batch Benchmark Mode:** `python main.py` or `python main.py --mode batch`
-* **Mathematical Explorer Mode:** `python main.py --mode math`
-
----
-
-## Evaluation Metrics and Exporting
-
-Because clustering algorithms assign arbitrary labels to clusters, predicting exact column matches between the ground truth $Z$ and the predicted $Z_{alg}$ is a label permutation problem solved automatically via the Hungarian algorithm (`scipy.optimize.linear_sum_assignment`).
-
-### Evaluated Metrics:
-* **Accuracy:** Standard classification accuracy of statement assignments.
-* **Jaccard Macro:** Average Jaccard Index across all clusters (giving equal weight to small and large clusters).
-* **Jaccard Micro:** Global Jaccard Index across all pooled statements (favoring larger clusters).
-
-### Exporting Results:
-Once a benchmark run is completed in the GUI, you can click the **"⬇ Export JSON"** button to export a structured file named following the convention `CMAP-[AlgorithmName]-[YYYYMMDD].json`. The exported JSON file contains:
-1. The selected algorithm name.
-2. The overall mean performance metrics across the entire experiment.
-3. The step-by-step averaged performance records.
-4. The complete raw iteration logs.
+- `RandomClusteringAlgorithm`: random baseline used to test the framework.
+- `TrochimMethodAlgorithm`: traditional concept mapping pipeline using dissimilarity conversion, non-metric MDS, and Ward hierarchical clustering.
+- `PeladeauMethodAlgorithm`: hierarchical clustering directly on the original dissimilarity matrix using weighted linkage.
