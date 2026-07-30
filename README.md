@@ -9,7 +9,7 @@ This repository implements a synthetic benchmark for concept mapping clustering 
 - `src/generator.py`: synthetic generation of `Z`, `C`, `S0`, `E`, and `S`.
 - `src/generation_benchmark.py`: interpolation of easy-to-hard benchmark parameter steps.
 - `src/algorithms.py`: base class and implemented algorithms.
-- `src/evaluation.py`: label alignment, accuracy, and Jaccard metrics.
+- `src/evaluation.py`: pairwise co-clustering Jaccard evaluation.
 - `experiment_settings.json`: default GUI parameters.
 - `results/`: JSON benchmark outputs.
 
@@ -52,15 +52,11 @@ The JSON contains the selected algorithm, save time, overall mean metrics, step 
 
 ## Evaluation Metrics
 
-Predicted cluster labels are first aligned with the ground truth by solving the label permutation problem with the Hungarian algorithm.
+The framework currently uses one evaluation metric:
 
-The current metrics are:
+- `jaccard_pairwise`: pairwise co-clustering Jaccard, computed on statement pairs using the upper triangle of the co-clustering matrices, excluding the diagonal.
 
-- `accuracy`: fraction of statements assigned to the correct aligned cluster.
-- `jaccard_eqcluster`: macro Jaccard coefficient, computed as the mean Jaccard index over clusters, giving each cluster equal weight.
-- `jaccard_eqst`: micro Jaccard coefficient, computed globally over pooled statement decisions, giving statements equal contribution.
-
-For each benchmark step, the framework averages metrics over repeated runs. Overall means are then computed across all raw runs.
+This metric is label-invariant because it compares whether pairs of statements are co-clustered in both the true and predicted partitions. For each benchmark step, the framework averages the metric over repeated runs. The overall mean is then computed across all raw runs.
 
 ## Implementing New Algorithms
 

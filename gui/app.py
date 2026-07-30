@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sklearn.manifold import MDS
-import pandas as pd
 import json
 import os
 import sys
@@ -89,9 +88,6 @@ class ExperimentApp:
         main_container = ttk.Frame(self.root, padding=20)
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        # -----------------------------------------------------
-        # 1. HEADER CARD
-        # -----------------------------------------------------
         header_frame = ttk.Frame(main_container)
         header_frame.pack(side=tk.TOP, fill=tk.X, pady=(0, 15))
         ttk.Label(header_frame, text="Select Algorithm:", style="Header.TLabel").pack(side=tk.LEFT)
@@ -105,18 +101,14 @@ class ExperimentApp:
         elif self.available_algs:
             self.alg_combo.current(0)
 
-        # -----------------------------------------------------
-        # 2. CONFIGURATION CARD
-        # -----------------------------------------------------
         config_card = ttk.Frame(main_container, style="Card.TFrame", padding=15)
         config_card.pack(side=tk.TOP, fill=tk.X, pady=(0, 15))
 
-        ttk.Label(config_card, text="Parameter Bounds (Start → End)", style="SubHeader.TLabel").grid(row=0, column=0, columnspan=6, sticky="w", pady=(0, 10))
+        ttk.Label(config_card, text="Parameter Bounds (Start -> End)", style="SubHeader.TLabel").grid(row=0, column=0, columnspan=6, sticky="w", pady=(0, 10))
 
         self.inputs = {}
         json_params = self.settings.get("parameters", {})
         
-        # Tuple format: (Label, Key, Default Start, Default End)
         param_keys = [
             ("st (Statements <= 100)", "st", "20", "100"),
             ("k (Clusters)", "k", "3", "12"),
@@ -134,7 +126,6 @@ class ExperimentApp:
         for idx, (label, key, def_start, def_end) in enumerate(param_keys, start=2):
             ttk.Label(config_card, text=label, background="#ffffff").grid(row=idx, column=0, sticky="w", pady=2, padx=(0, 10))
             
-            # Fetch from JSON if exists, otherwise use the realistic defaults defined above
             start_val = str(json_params.get(label, {}).get("start", def_start))
             end_val = str(json_params.get(label, {}).get("end", def_end))
             
@@ -160,12 +151,9 @@ class ExperimentApp:
         self.iters_entry.insert(0, str(run_settings.get("iterations_per_step", 5)))
         self.iters_entry.grid(row=2, column=5, sticky="w")
 
-        run_btn = ttk.Button(config_card, text="▶ Run Benchmark", style="Primary.TButton", command=self.run_experiment)
+        run_btn = ttk.Button(config_card, text="Run Benchmark", style="Primary.TButton", command=self.run_experiment)
         run_btn.grid(row=4, column=4, columnspan=2, sticky="ew", padx=(30, 0), pady=10)
 
-        # -----------------------------------------------------
-        # 3. SUMMARY CARD (Pinned to the BOTTOM)
-        # -----------------------------------------------------
         summary_card = ttk.Frame(main_container, style="Card.TFrame", padding=15)
         summary_card.pack(side=tk.BOTTOM, fill=tk.X, pady=(15, 0))
 
@@ -185,7 +173,7 @@ class ExperimentApp:
 
         self.export_btn = tk.Button(
             bottom_row, 
-            text="⬇ Export JSON", 
+            text="Export JSON", 
             command=self.export_results,
             bg="#2563eb",
             fg="#ffffff",
@@ -197,9 +185,6 @@ class ExperimentApp:
         )
         self.export_btn.pack(side=tk.RIGHT)
 
-        # -----------------------------------------------------
-        # 4. TABLE CARD (Takes remaining space)
-        # -----------------------------------------------------
         table_card = ttk.Frame(main_container, style="Card.TFrame", padding=15)
         table_card.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -211,7 +196,7 @@ class ExperimentApp:
         scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        columns = ("step", "st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e", "accuracy", "jaccard_eqcluster", "jaccard_eqst")
+        columns = ("step", "st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e", "jaccard_pairwise")
         
         self.tree = ttk.Treeview(tree_container, columns=columns, show="headings", height=6, yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.tree.yview)
@@ -220,7 +205,7 @@ class ExperimentApp:
             "step": ("Step", 50), "st": ("st", 50), "k": ("k", 50), 
             "mean_cii": ("m_cii", 70), "std_cii": ("s_cii", 70), 
             "mean_cij": ("m_cij", 70), "std_cij": ("s_cij", 70), "std_e": ("std_e", 70),
-            "accuracy": ("Accuracy", 80), "jaccard_eqcluster": ("Jaccard_eqcluster", 130), "jaccard_eqst": ("Jaccard_eqst", 110)
+            "jaccard_pairwise": ("Jaccard_pairwise", 130)
         }
         
         for col, (head, width) in col_settings.items():
@@ -267,15 +252,11 @@ class ExperimentApp:
                     f"{row['mean_cij']:.2f}",
                     f"{row['std_cij']:.2f}",
                     f"{row['std_e']:.2f}",
-                    f"{row['accuracy']:.3f}",
-                    f"{row['jaccard_eqcluster']:.3f}",
-                    f"{row['jaccard_eqst']:.3f}"
+                    f"{row['jaccard_pairwise']:.3f}"
                 ))
 
             summary_text = (
-                f"Overall Mean Accuracy: {overall['overall_accuracy']:.3f}   |   "
-                f"Overall Mean Jaccard_eqcluster: {overall['overall_jaccard_eqcluster']:.3f}   |   "
-                f"Overall Mean Jaccard_eqst: {overall['overall_jaccard_eqst']:.3f}"
+                f"Overall Mean Jaccard_pairwise: {overall['overall_jaccard_pairwise']:.3f}"
             )
             self.metrics_lbl.config(text=summary_text, fg="#0f172a", font=("Segoe UI", 11, "bold"))
 
@@ -335,7 +316,7 @@ class MathModeApp:
         right_frame = tk.Frame(self.root, width=400, padx=10, pady=10)
         right_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
-        tk.Label(left_frame, text="1Configuration", font=("Arial", 12, "bold")).pack(pady=5)
+        tk.Label(left_frame, text="1. Configuration", font=("Arial", 12, "bold")).pack(pady=5)
 
         self.inputs = {}
         labels = ["st", "k", "mean_cii", "std_cii", "mean_cij", "std_cij", "std_e"]
@@ -394,7 +375,7 @@ class MathModeApp:
             frame = tk.Frame(self.scrollable_frame)
             frame.pack(fill=tk.X, pady=(10, 0))
             tk.Label(frame, text=f"Matrix {mat_name}", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
-            tk.Button(frame, text="🔍 Expand", font=("Arial", 8), command=lambda m=mat_name: self.expand_matrix(m)).pack(side=tk.RIGHT)
+            tk.Button(frame, text="Expand", font=("Arial", 8), command=lambda m=mat_name: self.expand_matrix(m)).pack(side=tk.RIGHT)
 
             txt = tk.Text(self.scrollable_frame, height=6, width=45, wrap=tk.NONE)
             txt.pack(fill=tk.X)
