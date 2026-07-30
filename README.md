@@ -45,7 +45,7 @@ python main.py --mode math
 After a benchmark run, results are automatically saved as JSON under `results/` using:
 
 ```text
-CMAP_[Algorithm]_[YYYYMMDD_ss-mm-hh].json
+CMAP_[Algorithm]_[YYYYMMDD_hh-mm-ss].json
 ```
 
 The JSON contains the selected algorithm, save time, overall mean metrics, step averages, and raw iteration logs. The GUI export button can also save an additional JSON copy.
@@ -56,7 +56,7 @@ The framework currently uses one evaluation metric:
 
 - `jaccard_pairwise`: pairwise co-clustering Jaccard, computed on statement pairs using the upper triangle of the co-clustering matrices, excluding the diagonal.
 
-This metric is label-invariant because it compares whether pairs of statements are co-clustered in both the true and predicted partitions. For each benchmark step, the framework averages the metric over repeated runs. The overall mean is then computed across all raw runs.
+This metric compares whether pairs of statements are co-clustered in both the true and predicted partitions. For each benchmark step, the framework averages the metric over repeated runs. The overall mean is then computed across all raw runs.
 
 ## Implementing New Algorithms
 
