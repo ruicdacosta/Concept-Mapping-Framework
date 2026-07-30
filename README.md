@@ -35,7 +35,11 @@ python main.py --mode math
 
 `python main.py` opens the benchmark interface. Select an algorithm, set parameter bounds, choose the number of steps and runs per step, and run the experiment.
 
+![Benchmark interface](doc/figures/main_page_cmap.png)
+
 `python main.py --mode math` opens the mathematical inspection tool. It lets the user define or generate `Z`, generate `C`, `S0`, `E`, and `S`, inspect the matrices, and visualize `S0` or `S` using non-metric MDS.
+
+![Mathematical inspection interface](doc/figures/math_page_cmap.png)
 
 ## Results
 
