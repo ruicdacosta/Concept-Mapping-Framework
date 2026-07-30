@@ -12,7 +12,6 @@ This repository implements a synthetic benchmark for concept mapping clustering 
 - `src/evaluation.py`: label alignment, accuracy, and Jaccard metrics.
 - `experiment_settings.json`: default GUI parameters.
 - `results/`: JSON benchmark outputs.
-- `doc/doc.tex`: compact technical report.
 
 ## Mathematical Model
 
@@ -49,7 +48,7 @@ After a benchmark run, results are automatically saved as JSON under `results/` 
 CMAP_[Algorithm]_[YYYYMMDD_ss-mm-hh].json
 ```
 
-The time separator is `-` instead of `:` because Windows filenames cannot contain colons. The JSON contains the selected algorithm, save time, overall mean metrics, step averages, and raw iteration logs. The GUI export button can also save an additional JSON copy.
+The JSON contains the selected algorithm, save time, overall mean metrics, step averages, and raw iteration logs. The GUI export button can also save an additional JSON copy.
 
 ## Evaluation Metrics
 
